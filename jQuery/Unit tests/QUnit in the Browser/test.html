@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Test DataGrid</title>
+<head>
+  <script src="https://code.jquery.com/qunit/qunit-2.16.0.js"></script>
+  <script
+    src="https://code.jquery.com/jquery-3.6.0.min.js"
+    integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+    crossorigin="anonymous"
+  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/sinon@9/pkg/sinon.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/devextreme/21.1.4/js/dx.all.js"></script>
+  <link
+    rel="stylesheet"
+    href="https://code.jquery.com/qunit/qunit-2.16.0.css"
+  />
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/devextreme/21.1.4/css/dx.light.css"
+    rel="stylesheet"
+  />
+</head>
+<body>
+  <div id="dataGrid"></div>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+</body>
+<script>
+  let clock;
+
+  let createDataGrid = (options, $container) => {
+    const dataGridElement = ($container || $("#dataGrid")).dxDataGrid(options);
+    QUnit.assert.ok(dataGridElement);
+    const dataGrid = dataGridElement.dxDataGrid("instance");
+    return dataGrid;
+  };
+
+  QUnit.module("DataGrid", {
+    beforeEach: function() {
+        clock = sinon.useFakeTimers();
+    },
+    afterEach: function() {
+        clock.restore();
+    }
+}, () => {
+    QUnit.test("DataGrid is ready and displaying data", function (assert) {
+      // act
+      const dataGrid = createDataGrid({
+        dataSource: {
+          pageSize: 3,
+          store: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+        },
+      });
+      clock.tick(100);
+      // assert
+      assert.equal($("#dataGrid").find(".dx-data-row").length, 3);
+    });
+  });
+</script>
