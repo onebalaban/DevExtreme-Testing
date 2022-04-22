@@ -430,3 +430,283 @@ test('Page index is changed from dxPager',  async() => {
 Here, we configure DataGrid, including its pager and paging properties. Next, we find a page button on a pager and trigger the "click" event on it. The result is OK if the page index is 5.
 
 You can find the full code in the following folder: /React/End-to-end tests/React Testing Library/my-app
+
+
+# How to test DevExtreme components in Angular
+
+A good article describing the testing basics https://medium.com/welldone-software/an-overview-of-javascript-testing-7ce7298b9870
+
+The most used test types for web applications are the following:
+
+**Unit Tests**
+Testing of particular code parts (units), that implement a simple feature. A unit can be a function or class. A component is created and then we should make sure that the required unit works as expected. 
+Unit testing helps to organize the code in isolated pieces, that can be tested separately. Each test should cover only a single unit of code. This allows a developer to make sure that everything works as expected after implementing new functionality and to easily find a problematic part (if any).
+
+Unit testing helps improving the design of the code and also to find complex units that can be simplified.
+
+**Integration Tests**
+Testing processes across several units to achieve their goals, including their side effects
+
+**End-to-end Tests** (e2e tests or functional tests)
+Testing how scenarios function on the product itself, by controlling the browser or the website. These tests usually ignore the internal structure of the application entirety and look at them from the eyes of the user like on a black box.
+
+Besides these main test types, you can use any other tests to make sure that your application works as expected. For instance, **Screenshot Tests** is a simple way to verify your application's appearance. We ship `[TestCafe Studio](https://www.devexpress.com/products/testcafestudio/)`. It can help you with End-to-End tests including screenshot tests.
+
+**Examples**
+
+**Testing in Angular**:
+
+Projects created with Angular CLI have built-in testing support with the [Jasmine test framework](https://jasmine.github.io/).
+
+
+**Unit tests with Jasmine**
+Let's create a unit test for DataGrid. There, we'll check that DataGrid is created and displaying data
+To get started with Jasmine, create a simple Angular app, [add](https://js.devexpress.com/Documentation/Guide/React_Components/Add_DevExtreme_to_a_React_Application/#One-Command_Setup) DevExtreme to it. 
+
+Add the following imports:
+
+```
+// import dependencies
+import { TestBed } from '@angular/core/testing';
+import { DxDataGridModule } from 'devextreme-angular';
+// the component to test
+import { AppComponent } from './app.component';
+```
+
+Add the following script, which tests that DataGrid is configured and loaded data. In this script, we create a DataGrid instance and measure the number of data rows after the DataGrid is displayed.
+```
+describe('AppComponent', () => {
+  beforeEach(async () => {
+    jasmine.clock().install();
+    await TestBed.configureTestingModule({
+      declarations: [
+        AppComponent
+      ],
+      imports: [
+        DxDataGridModule
+      ]
+    }).compileComponents();
+  });
+  afterEach( () => {
+    jasmine.clock().uninstall();
+  });
+
+  it('should render DataGrid rows',  () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement;
+    jasmine.clock().tick(500); // use jasmine clock because DataGrid rendering is async
+    expect(compiled.querySelectorAll('.dx-data-row').length).toEqual(4);
+  });
+});
+```
+
+Here is the content of AppComponent:
+```
+<dx-data-grid
+  id="gridContainer"
+  [dataSource]="dataSource"
+>
+</dx-data-grid>
+```
+
+```
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  title = 'my-app';
+  dataSource: any = [{ id: 1, text: 'test' }, { id: 2, text: 'test' }, { id: 3, text: 'test' }, { id: 4, text: 'test' }];
+}
+```
+
+Also, import DxDataGridModule in `module.ts` file of AppComponent and reference DevExtreme style file in the karma.conf.js file:
+```
+    files: [
+      "node_modules/devextreme/dist/css/dx.light.css"
+    ],
+```
+
+Run `ng test` file in a test project to see the detailed report of the test and its result. 
+
+You can find the full code in the following folder: /Angular/Unit tests/Jasmine/my-app
+
+
+**Integration tests with Jasmine**
+
+Let's create an integration test for DataGrid. In this test, we add a row programmatically and save it. Then, we'll check the result.
+To get started, create a simple React app as shown in the previous section. 
+Use the following code:
+```
+import { TestBed } from '@angular/core/testing';
+import { AppComponent } from './app.component';
+import {DxDataGridComponent, DxDataGridModule} from 'devextreme-angular';
+
+describe('AppComponent', () => {
+  beforeEach(async () => {
+    jasmine.clock().install();
+    await TestBed.configureTestingModule({
+      declarations: [
+        AppComponent, DxDataGridComponent
+      ],
+      imports: [
+        DxDataGridModule
+      ]
+    }).compileComponents();
+  });
+  afterEach( () => {
+    jasmine.clock().uninstall();
+  });
+
+  it('should render five DataGrid rows and should not have edit data',  () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement;
+    jasmine.clock().tick(500);
+    const comp = fixture.componentInstance;
+    comp.dataGrid.instance.addRow();
+    jasmine.clock().tick(500);
+    comp.dataGrid.instance.saveEditData();
+    jasmine.clock().tick(500);
+    expect(comp.dataGrid.instance.getVisibleRows().length).toEqual(5);
+    expect(comp.dataGrid.instance.hasEditData()).toBe(false);
+  });
+});
+```
+
+Here is the content of AppComponent:
+```
+<dx-data-grid
+  id="gridContainer"
+  [dataSource]="dataSource"
+>
+  <dxo-editing mode="batch"></dxo-editing>
+</dx-data-grid>
+```
+
+```
+import { Component, ViewChild } from '@angular/core';
+import { DxDataGridComponent } from 'devextreme-angular';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  @ViewChild(DxDataGridComponent, { static: false }) dataGrid: DxDataGridComponent;
+  title = 'my-app';
+  dataSource = {key: 'id', store: [{ id: 1, text: 'test' }, { id: 2, text: 'test' }, { id: 3, text: 'test' }, { id: 4, text: 'test' }]};
+}
+
+```
+
+Also, import DxDataGridModule in `module.ts` file of AppComponent and reference DevExtreme style file in the karma.conf.js file:
+```
+    files: [
+      "node_modules/devextreme/dist/css/dx.light.css"
+    ],
+```
+
+After DataGrid is created, we call the addRow and saveEditData methods. Since all the processes are async, we have to use fake timers to perform methods continually. After that we check that DataGrid has five visible rows - four initial and the fifth is new one.
+
+Run `ng test` file in a test project to see the detailed report of the test and its result. 
+
+You can find the full code in the following folder: /Angular/Integration tests/Jasmine/my-app
+
+
+**End-to-end tests with Jasmine**
+
+
+Let's create an end-to-end test for DataGrid. There, we'll switch its page by emulating a click on a pager.
+To get started, create a simple Angular app as shown in the previous section. 
+Use the following code:
+
+```
+import { TestBed } from '@angular/core/testing';
+import { AppComponent } from './app.component';
+import {DxDataGridComponent, DxDataGridModule} from 'devextreme-angular';
+
+describe('AppComponent', () => {
+  beforeEach(async () => {
+    jasmine.clock().install();
+    await TestBed.configureTestingModule({
+      declarations: [
+        AppComponent, DxDataGridComponent
+      ],
+      imports: [
+        DxDataGridModule
+      ]
+    }).compileComponents();
+  });
+  afterEach( () => {
+    jasmine.clock().uninstall();
+  });
+
+  it('should render DataGrid and switch its page',  () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement;
+    jasmine.clock().tick(500);
+    const comp = fixture.componentInstance;
+    comp.dataGrid.instance.addRow();
+    const event = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window
+    });
+    (compiled.querySelectorAll('.dx-page')[5]).dispatchEvent(event);
+    jasmine.clock().tick(500);
+    expect(comp.dataGrid.instance.pageIndex()).toBe(5);
+  });
+});
+```
+
+Here is the content of AppComponent:
+```
+<dx-data-grid
+  id="gridContainer"
+  [dataSource]="dataSource"
+>
+  <dxo-pager [visible]="true" [allowedPageSizes]="[5, 10]" [showPageSizeSelector]="true"></dxo-pager>
+  <dxo-paging [enabled]="true" [pageSize]="10"></dxo-paging>
+</dx-data-grid>
+```
+
+```
+import { Component, ViewChild } from '@angular/core';
+import { DxDataGridComponent } from 'devextreme-angular';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  @ViewChild(DxDataGridComponent, { static: false }) dataGrid: DxDataGridComponent;
+  title = 'my-app';
+  array = [];
+  dataSource;
+  constructor() {
+    for (let i = 0; i < 100; i++) {
+      this.array.push({id: i, text: 'test ' + i});
+    }
+    this.dataSource = {key: 'id', store: this.array};
+  }
+}
+```
+
+Also, import DxDataGridModule in `module.ts` file of AppComponent and reference DevExtreme style file in the karma.conf.js file:
+```
+    files: [
+      "node_modules/devextreme/dist/css/dx.light.css"
+    ],
+```
+
+Here, we configure DataGrid, including its pager and paging properties. Next, we find a page button on a pager and trigger the "click" event on it. The result is OK if the page index is 5.
+
+You can find the full code in the following folder: /Angular/End-to-end tests/Jasmine/my-app
